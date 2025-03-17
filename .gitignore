@@ -6,6 +6,16 @@ __pycache__/
 # C extensions
 *.so
 
+
+json/
+zip/
+
+token.json
+/myenv
+myenv/
+.env 
+credentials.json
+/Backup
 # Distribution / packaging
 .Python
 build/
@@ -172,3 +182,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+c
