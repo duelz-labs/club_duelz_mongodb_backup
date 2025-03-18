@@ -30,7 +30,8 @@ class Compressor:
     def compress_backup(self, backup_file):
         """Compress JSON backup and move it to zip/ folder."""
         try:
-            base_name = os.path.basename(backup_file)  # Extract filename
+            # 🔹 Extract base name (without .json extension)
+            base_name = os.path.basename(backup_file).replace(".json", "")
             zip_file_path = os.path.join(self.zip_dir, f"{base_name}.zip")  # Save in zip/
 
             # 🔹 Skip compression if ZIP file already exists
@@ -38,7 +39,7 @@ class Compressor:
                 logging.warning(f"⚠ Skipping compression, file already exists: {zip_file_path}")
                 return zip_file_path
 
-            # 🔹 Create ZIP archive
+            # 🔹 Create ZIP archive (without the `.json` extension in the name)
             shutil.make_archive(zip_file_path.replace('.zip', ''), 'zip', os.path.dirname(backup_file), os.path.basename(backup_file))
 
             # 🔹 Move the compressed file to 'zip/' folder
@@ -53,5 +54,5 @@ class Compressor:
             return zip_file_path
 
         except Exception as e:
-            #logging.error(f"❌ Compression failed: {e}")
+            logging.error(f"❌ Compression failed: {e}")
             return None
