@@ -1,13 +1,3 @@
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%d-%m-%y %H:%M:%S"
-)
-
-logging.getLogger().setLevel(logging.INFO)
-
-
-
 import argparse
 import logging
 import time
@@ -19,7 +9,13 @@ from backup.bulk_backup import BulkBackup
 from cloud.google_drive import GoogleDriveUploader
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%m-%y %H:%M:%S"
+)
 
+logging.getLogger().setLevel(logging.INFO)
 
 def authenticate_service_account():
     info = Config.service_account_info()
