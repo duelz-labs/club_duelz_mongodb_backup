@@ -1,147 +1,90 @@
-# MongoDB_Backup 
+# club_duelz_mongodb_backup
 
-Automate your MongoDB backups, compress them, and securely upload to Google Drive!
+Automate your MongoDB backups, compress them in-memory, and securely upload a single ZIP to Google Drive with one command!
 
-🛠️ Simple Setup | Secure Backup | Easy Restoration
+🛠️ Simple Setup | Secure Backup | In-Memory Compression | One-Step Flow
 
 ## 📌 Features
-- ✅ Backup all MongoDB collections and store them in a structured format (.json).
-- ✅ Compress backups into ZIP files to save space.
-- ✅ Upload backups to Google Drive for secure cloud storage.
-- ✅ Automatic cleanup of old backup files to avoid duplicates.
-- ✅ Flexible configuration via .env file.
+- ✅ Dump every MongoDB collection into a structured JSONL file (in memory).  
+- ✅ Bundle all collections into one timestamped ZIP file.  
+- ✅ Upload the ZIP to Google Drive via Drive v3 API (service account).  
+- ✅ Skip duplicates if the same ZIP name already exists.  
+- ✅ Single `--zip-all` flag to run backup → compress → upload in one shot.  
 
-## 📖 Table of Contents
-- [Prerequisites](#prerequisites)
-- [Setup Instructions](#setup-instructions)
-  - [Step 1: Clone the Repository](#step-1-clone-the-repository)
-  - [Step 2: Set Up Google Cloud Credentials](#step-2-set-up-google-cloud-credentials)
-  - [Step 3: Configure the .env File](#step-3-configure-the-env-file)
-- [Configuration Details](#configuration-details)
-- [Running the Backup Tool](#running-the-backup-tool)
-- [Common Issues & Troubleshooting](#common-issues--troubleshooting)
-- [License](#license)
+---
 
 ## 📌 Prerequisites
-Before running this tool, make sure you have:
-- 🔹 Python 3.7+ installed.
-- 🔹 A MongoDB database (local or cloud-based).
-- 🔹 A Google Cloud Project with Drive API enabled (for Google Drive uploads).
-- 🔹 Google OAuth Credentials (credentials.json) for authentication.
+- 🔹 Python 3.7+  
+- 🔹 A MongoDB instance (local or cloud)  
+- 🔹 A Google Cloud service account JSON key with Drive API enabled  
+- 🔹 Access to a Google Drive folder ID where backups will be stored  
+
+---
 
 ## ⚙️ Setup Instructions
 
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/mongodb-backup.git
-cd mongodb-backup
+git clone git@github.com:duelz-labs/club_duelz_mongodb_backup.git
+cd club_duelz_mongodb_backup
 ```
 
-### Step 2: Set Up Google Cloud Credentials
-🎯 **Why is this needed?**
-This allows the script to authenticate with Google Drive and upload backups automatically.
-
-#### ✅ 1. Enable Google Drive API
-- Go to Google Cloud Console.
-- Create a new project or select an existing one.
-- In the APIs & Services section, search for "Google Drive API" and enable it.
-
-#### ✅ 2. Generate OAuth 2.0 Credentials
-- Go to APIs & Services → Credentials.
-- Click Create Credentials → Select OAuth Client ID.
-- Choose "Web Application" as the application type.
-- Add http://localhost:8080/ as the Authorized Redirect URI.
-- Click Create, then download credentials.json.
-
-#### ✅ 3. Move credentials.json to the Project Folder
-```bash
-mv ~/Downloads/credentials.json mongodb-backup/
-```
-📌 Make sure to update the .env file with the correct path to this file!
-
-### Step 3: Configure the .env File
-📌 The .env file is used to securely store configuration settings.
-
-#### ✅ Create the .env file
+### 2. Create and Configure `.env`
+Copy the example `.env.example` and edit the values:
 ```bash
 cp .env.example .env
 ```
 
-#### ✅ Edit the .env file
-Open the .env file in any text editor and update the necessary values:
+Open `.env` and set:
 
 ```ini
 # MongoDB Connection
-MONGO_URI=mongodb://your_mongo_user:password@host:port/database_name
-DATABASE_NAME=my_database
+MONGO_URI=mongodb://<user>:<pass>@<host>:<port>/<database>
+DATABASE_NAME=your_database_name
 
-# Backup Settings
-BACKUP_DIR=backup
-BACKUP_FORMAT=jsonl
-BATCH_SIZE=500
-COMPRESS_BACKUPS=true
-COMPRESSION_LEVEL=6
-REMOVE_AFTER_COMPRESSION=true
-
-# Google Drive Configuration
+# Google Drive (Service Account)
 GOOGLE_DRIVE_ENABLED=true
-GOOGLE_CREDENTIALS_PATH=credentials.json
-GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
+GOOGLE_CREDENTIALS_PATH=path/to/service_account_key.json
+GOOGLE_DRIVE_FOLDER_ID=your_drive_folder_id
 
-# Logging Configuration
+# Logging (optional)
 LOG_LEVEL=INFO
 LOG_FILE=backup.log
 ```
 
-🎯 **Important Notes:**
-- `MONGO_URI`: Replace with your MongoDB connection string.
-- `GOOGLE_CREDENTIALS_PATH`: Must point to your credentials.json file.
-- `GOOGLE_DRIVE_FOLDER_ID`: Find the Folder ID in Google Drive by opening the folder and copying the long string from the URL.
+- `MONGO_URI`: Your MongoDB connection string.  
+- `DATABASE_NAME`: Database to back up.  
+- `GOOGLE_CREDENTIALS_PATH`: Path to your service account JSON.  
+- `GOOGLE_DRIVE_FOLDER_ID`: Drive folder ID from the URL.  
 
-## ⚙️ Configuration Details
-
-| Variable | Description |
-|----------|-------------|
-| MONGO_URI | MongoDB connection string (Atlas/local) |
-| DATABASE_NAME | Name of the database to back up |
-| BACKUP_DIR | Directory where backups will be stored |
-| COMPRESS_BACKUPS | Enable compression (true / false) |
-| GOOGLE_DRIVE_ENABLED | Enable Google Drive upload (true / false) |
-| GOOGLE_DRIVE_FOLDER_ID | Folder ID in Google Drive where backups will be uploaded |
-| LOG_LEVEL | Logging level (e.g., INFO, DEBUG, ERROR) |
+---
 
 ## 🚀 Running the Backup Tool
-Once everything is set up, you can start using the tool.
 
-### ✅ 1. Install Dependencies
+Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### ✅ 2. Run the Backup Script
+Run the all-in-one backup:
+
 ```bash
-python main.py --backup --compress --upload
+python main.py --zip-all
 ```
 
-- `--backup` → Backs up all MongoDB collections to the json/ folder.
-- `--compress` → Compresses backup files into zip/.
-- `--upload` → Uploads .zip backups to Google Drive.
+Example output:
 
-🔹 **Example Output:**
 ```
-✅ Backup completed: json/ahmedabad_2025_03_17_2315.json
-✅ Compression completed: zip/ahmedabad_2025_03_17_2315.zip
-✅ Successfully uploaded ahmedabad_2025_03_17_2315.zip to Google Drive.
-✅ Upload process completed.
-```
+20-05-12 20:00:00 - INFO - 🔗 Connecting to MongoDB at 'mongodb://...'
+20-05-12 20:00:00 - INFO - ✅ MongoDB connection successful
+20-05-12 20:00:00 - INFO - 🗄 Using database: 'my_database'
+20-05-12 20:00:00 - INFO - 📋 Found 5 collections: ['users','orders','products',...]
+20-05-12 20:00:00 - INFO - ✉️  Bundling 5 collections into 12-05-20-200000.zip
+20-05-12 20:00:02 - INFO - ✅ Created in-memory zip: 12-05-20-200000.zip
+20-05-12 20:00:02 - INFO - ✅ Uploaded '12-05-20-200000.zip' (ID: 1a2b3c)
+20-05-12 20:00:02 - INFO - ✅ Completed in 2.1s
 
-## ❌ Common Issues & Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "MongoDB connection failed" | Double-check your MONGO_URI and ensure MongoDB is running. |
-| "Google Drive authentication failed" | Ensure credentials.json exists and is correctly configured. Run `python test.py` to verify authentication. |
-| "File already exists" | The script skips duplicate uploads. If necessary, delete old backups manually. |
-| ".env not found" | Make sure you have created .env from .env.example. |
-
-📌 To debug issues, check backup.log for detailed logs.
+## 📄 License
+This project is licensed under the [MIT License](LICENSE).

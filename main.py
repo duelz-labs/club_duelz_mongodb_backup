@@ -1,3 +1,13 @@
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%m-%y %H:%M:%S"
+)
+
+logging.getLogger().setLevel(logging.INFO)
+
+
+
 import argparse
 import logging
 import time
@@ -8,12 +18,8 @@ from googleapiclient.discovery import build
 from backup.bulk_backup import BulkBackup
 from cloud.google_drive import GoogleDriveUploader
 
-# --- configure logging ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%d-%m-%y %H:%M:%S"
-)
+
+
 
 def authenticate_service_account():
     info = Config.service_account_info()
@@ -55,5 +61,5 @@ def main():
         uploader.upload_from_memory(buf, zip_name)
         logging.info(f"✅ All done in {time.time() - start:.1f}s")
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     main()
