@@ -4,3 +4,9 @@ pydrive
 argparse
 logging
 pydrive2
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
+python-dotenv
+python-dateutil>=2.8.2

@@ -6,7 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
-
+Backup_Key.json/
 json/
 zip/
 

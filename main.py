@@ -1,94 +1,59 @@
 import argparse
 import logging
-import glob
-import os
-from backup.local_backup import LocalBackup
-from compression.compress import Compressor
+import time
+from config import Config
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
+from backup.bulk_backup import BulkBackup
 from cloud.google_drive import GoogleDriveUploader
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
-from io import BytesIO
-import tempfile
 
-# Initialize logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# --- configure logging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%d-%m-%y %H:%M:%S"
+)
 
-
-def authenticate_google_drive():
-    """Authenticate and ensure token.json is valid for offline use."""
-    gauth = GoogleAuth()
-
-    # 1️⃣ Try Loading Existing Token First
-    if os.path.exists("token.json"):
-        logging.info("🔹 Loading existing token.json...")
-        gauth.LoadCredentialsFile("token.json")
-
-        if gauth.credentials is None:
-            logging.warning("🔹 No valid credentials found. Re-authenticating...")
-        elif gauth.access_token_expired:
-            logging.info("🔹 Token expired. Attempting to refresh...")
-            try:
-                gauth.Refresh()
-                gauth.SaveCredentialsFile("token.json")
-                return GoogleDrive(gauth)
-            except Exception as e:
-                logging.error(f"❌ Token refresh failed: {e}. Re-authenticating...")
-
-    # 2️⃣ Force Re-authentication with Offline Access if No Token Exists
-    logging.info("🔹 No valid token found. Performing full authentication...")
-    gauth.LoadClientConfigFile("credentials.json")
-    
-    # Force getting a refresh token
-    gauth.LocalWebserverAuth()  
-    gauth.SaveCredentialsFile("token.json")
-    
-    logging.info("✅ Authentication successful. token.json has been saved!")
-    
-    return GoogleDrive(gauth)
-
+def authenticate_service_account():
+    info = Config.service_account_info()
+    creds = Credentials.from_service_account_info(
+        info,
+        scopes=Config.DRIVE_SCOPES
+    )
+    drive = build("drive", "v3", credentials=creds)
+    logging.info("✅ Authenticated to Google Drive via service account")
+    return drive
 
 def main():
-    logging.info("Starting main function...")
-    parser = argparse.ArgumentParser(description="MongoDB Backup Tool")
-    parser.add_argument("--backup", action="store_true", help="Backup all collections")
-    parser.add_argument("--compress", action="store_true", help="Compress backup files")
-    parser.add_argument("--upload", action="store_true", help="Upload backup files to Google Drive")
+    parser = argparse.ArgumentParser(
+        description="📦 MongoDB → in-memory ZIP → Google Drive (one command only)"
+    )
+    parser.add_argument(
+        "--zip-all",
+        action="store_true",
+        help="🎁 Dump every collection to one ZIP and upload it"
+    )
     args = parser.parse_args()
 
-    logging.info(f"Arguments received: backup={args.backup}, compress={args.compress}, upload={args.upload}")
+    if not args.zip_all:
+        parser.print_help()
+        return
 
-    # Authenticate Google Drive and proceed with actions
-    drive = authenticate_google_drive()  # Authenticate and return GoogleDrive instance
-    uploader = GoogleDriveUploader(drive)  # Pass the GoogleDrive instance here
+    if not Config.GOOGLE_DRIVE_ENABLED:
+        logging.error("❌ GOOGLE_DRIVE_ENABLED is false; aborting.")
+        return
 
-    # **FIX**: Pass `drive` instance to `LocalBackup` and `Compressor`
-    if args.backup:
-        logging.info("Starting backup...")
-        backup = LocalBackup(drive)  # Pass drive instance to LocalBackup
-        backup.backup_all_collections()
-        logging.info("✅ Backup process completed.")
-    
-    if args.compress:
-        logging.info("Starting compression...")
-        compressor = Compressor(drive)  # Pass drive instance to Compressor
+    drive = authenticate_service_account()
+    uploader = GoogleDriveUploader(drive, folder_id=Config.GOOGLE_DRIVE_FOLDER_ID)
 
-        backup_files = glob.glob("json/*.json")
-        logging.info(f"Found {len(backup_files)} JSON files to compress.")
-        for backup_file in backup_files:
-            compressor.compress_backup(backup_file)
+    start = time.time()
+    buf, zip_name = BulkBackup().create_zip()
+    if buf is None:
+        logging.warning("⚠ No collections found; nothing to upload.")
+    else:
+        uploader.upload_from_memory(buf, zip_name)
+        logging.info(f"✅ All done in {time.time() - start:.1f}s")
 
-        logging.info("✅ Compression process completed.")
-
-    if args.upload:
-        logging.info("Starting upload to Google Drive...")
-        zip_files = glob.glob("zip/*.zip")
-        logging.info(f"Found {len(zip_files)} zip files to upload.")
-        for zip_file in zip_files:
-            uploader.upload_file(zip_file)
-
-        logging.info("✅ Upload process completed.")
-
-
-# Ensure main() is executed when script is run directly
 if __name__ == "__main__":
     main()
